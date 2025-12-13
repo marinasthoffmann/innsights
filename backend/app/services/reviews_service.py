@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Tuple, List
 from repository.hotels_repository import HotelRepository
 from repository.reviews_repository import ReviewRepository
 from models.review import Review, ReviewStatus
@@ -56,6 +56,82 @@ class ReviewService:
         #     self.queue_service.publish_review_for_analysis(review.id, review.content)
         
         return review
+    
+    def list_reviews(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        status: Optional[ReviewStatus] = None
+    ) -> Tuple[List[Review], int, int]:
+        """
+        Get paginated list of all reviews.
+        
+        Args:
+            page: Page number (1-indexed)
+            page_size: Number of items per page
+            status: Filter by status (optional)
+            
+        Returns:
+            Tuple of (reviews list, total count, total pages)
+        """
+        reviews, total = self.review_repo.get_all(
+            page=page,
+            page_size=page_size,
+            status=status
+        )
+        
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+        
+        return reviews, total, total_pages    
+    
+    def list_hotel_reviews(
+        self,
+        hotel_id: int,
+        page: int = 1,
+        page_size: int = 20,
+        status: Optional[ReviewStatus] = None
+    ) -> Tuple[List[Review], int, int]:
+        """
+        Get paginated reviews for a specific hotel.
+        
+        Args:
+            hotel_id: Hotel ID
+            page: Page number (1-indexed)
+            page_size: Number of items per page
+            status: Filter by status (optional)
+            
+        Returns:
+            Tuple of (reviews list, total count, total pages)
+            
+        Raises:
+            ValueError: If hotel doesn't exist
+        """
+        if not self.hotel_repo.exists(hotel_id):
+            raise ValueError(f"Hotel with ID {hotel_id} does not exist")
+        
+        reviews, total = self.review_repo.get_by_hotel(
+            hotel_id=hotel_id,
+            page=page,
+            page_size=page_size,
+            status=status
+        )
+        
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+        
+        return reviews, total, total_pages
+    
+    def get_review(self, review_id: int, with_hotel: bool = False) -> Optional[Review]:
+        """
+        Get review by ID.
+        
+        Args:
+            review_id: Review ID
+            with_hotel: If True, include hotel data
+            
+        Returns:
+            Review instance or None if not found
+        """
+        return self.review_repo.get_by_id(review_id, with_hotel=with_hotel)
     
     def _validate_review_data(self, data: dict):
         """
