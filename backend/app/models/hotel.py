@@ -63,13 +63,13 @@ class Hotel(BaseModel):
         nullable=True
     )
     
-    # # Relationships
-    # reviews = relationship(
-    #     "Review",
-    #     back_populates="hotel",
-    #     cascade="all, delete-orphan",
-    #     lazy="dynamic"
-    # )
+    # Relationships
+    reviews = relationship(
+        "Review",
+        back_populates="hotel",
+        cascade="all, delete-orphan",
+        lazy="select"
+    )
     
     def __repr__(self) -> str:
         return f"Hotel(id={self.id}, name='{self.name}', city='{self.city}')"
@@ -77,7 +77,7 @@ class Hotel(BaseModel):
     @property
     def review_count(self) -> int:
         """Returns the total number of reviews for this hotel"""
-        return self.reviews.count()
+        return len(self.reviews) if self.reviews else 0
     
     @property
     def location(self) -> str:

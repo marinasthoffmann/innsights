@@ -7,6 +7,7 @@ from config import get_config
 from extensions import init_extensions, db
 from routes.health_bp import health_bp
 from routes.hotels_bp import hotels_bp
+from routes.reviews_bp import reviews_bp
 from models.hotel import Hotel
 
 
@@ -70,7 +71,7 @@ def register_blueprints(app):
     # API routes (with version prefix)
     api_prefix = app.config['API_PREFIX']
     app.register_blueprint(hotels_bp, url_prefix=f'{api_prefix}/hotels')
-
+    app.register_blueprint(reviews_bp, url_prefix=f'{api_prefix}/reviews')
     
     app.logger.info(f"Registered blueprints with prefix: {api_prefix}")
 
@@ -149,7 +150,8 @@ def _create_tables(app, inspector):
     try:
         db.create_all()
         
-        new_tables = inspector.get_table_names()
+        new_inspector = inspect(db.engine)
+        new_tables = new_inspector.get_table_names()
         app.logger.info(f"Successfully created tables: {new_tables}")
         
         if 'hotels' not in new_tables:

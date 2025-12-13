@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class ReviewBase(BaseModel):
@@ -11,6 +11,22 @@ class ReviewBase(BaseModel):
     rating: int = Field(..., ge=1, le=5, description="Star rating (1-5)")
     title: Optional[str] = Field(None, max_length=200, description="Review title")
     content: str = Field(..., min_length=10, description="Review text content")
+
+    @field_validator('user_name')
+    @classmethod
+    def validate_user_name(cls, value: str) -> str:
+        """Validate that user name is not empty or whitespace only"""
+        if not value.strip():
+            raise ValueError('User name cannot be empty or whitespace')
+        return value.strip()
+    
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, value: str) -> str:
+        """Validate that content is not empty or whitespace only"""
+        if not value.strip():
+            raise ValueError('Review content cannot be empty or whitespace')
+        return value.strip()
 
 class ReviewCreate(ReviewBase):
     """

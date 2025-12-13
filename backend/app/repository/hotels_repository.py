@@ -132,3 +132,17 @@ class HotelRepository:
         self.session.delete(hotel)
         self.session.commit()
         return True
+    
+    def exists(self, hotel_id: int) -> bool:
+        """
+        Check if hotel exists.
+        
+        Args:
+            hotel_id: Hotel ID
+            
+        Returns:
+            True if exists, False otherwise
+        """
+        return self.session.scalar(
+            select(func.count()).where(Hotel.id == hotel_id)
+        ) > 0

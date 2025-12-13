@@ -66,12 +66,7 @@ class Review(BaseModel):
         String(100),
         nullable=False
     )
-    
-    user_email: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True
-    )
-    
+        
     # Review Content
     rating: Mapped[int] = mapped_column(
         Integer,
@@ -128,8 +123,24 @@ class Review(BaseModel):
         comment="Important phrases extracted from review"
     )
     
-    # # Relationships
-    # hotel: Mapped["Hotel"] = relationship(
-    #     "Hotel",
-    #     back_populates="reviews"
-    # )
+    # Relationships
+    hotel = relationship(
+        "Hotel",
+        back_populates="reviews"
+    )
+
+    def __repr__(self) -> str:
+        return (
+            f"Review(id={self.id}, hotel_id={self.hotel_id}, "
+            f"rating={self.rating}, status={self.status.value})"
+        )
+    
+    @property
+    def is_processed(self) -> bool:
+        """Check if review has been analyzed by AI"""
+        return self.status == ReviewStatus.COMPLETED
+    
+    @property
+    def is_pending(self) -> bool:
+        """Check if review is waiting for analysis"""
+        return self.status == ReviewStatus.PENDING
