@@ -3,6 +3,7 @@ from typing import Optional, Tuple, List
 from repository.hotels_repository import HotelRepository
 from repository.reviews_repository import ReviewRepository
 from models.review import Review, ReviewStatus
+from queue_publisher import get_publisher
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +52,21 @@ class ReviewService:
         review = self.review_repo.create(review_data)
         logger.info(f"Created review: {review.id} for hotel: {hotel_id}")
         
-        # TODO: Send to queue for AI analysis
-        # if self.queue_service:
-        #     self.queue_service.publish_review_for_analysis(review.id, review.content)
+        # Publish to RabbitMQ for analysis
+        try:
+            publisher = get_publisher()
+            publisher.publish_review(
+                review_id=review.id,
+                review_data={
+                    'content': review.content,
+                    'title': review.title,
+                    'rating': review.rating,
+                    'hotel_id': review.hotel_id
+                }
+            )
+            logger.info(f"✅ Review {review.id} sent to queue")
+        except Exception as e:
+            logger.error(f"⚠️ Error publishing review {review.id}: {e}")
         
         return review
     

@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Postgres
+  postgres:
+    image: postgres:15-alpine
+    container_name: innsight-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: innsight
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: innsight-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP Port (Python)
+      - "15672:15672" # Web
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Flask
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: innsight-api
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/innsight
+      FLASK_ENV: development
+      RABBITMQ_HOST: rabbitmq
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: sh -c "sleep 5 && python app/app.py"
+
+  ai-worker:
+    build:
+      context: ./ai_worker
+      dockerfile: Dockerfile
+    container_name: innsight-ai-worker
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./ai_worker:/app 
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
