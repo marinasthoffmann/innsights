@@ -5,16 +5,18 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: innsight-postgres
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: innsight
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,9 +25,11 @@ services:
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: innsight-rabbitmq
+    env_file:
+      - .env
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
     ports:
       - "5672:5672"   # AMQP Port (Python)
       - "15672:15672" # Web
@@ -43,10 +47,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: innsight-api
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/innsight
-      FLASK_ENV: development
-      RABBITMQ_HOST: rabbitmq
+      DATABASE_URL: ${DATABASE_URL}
+      FLASK_ENV: ${FLASK_ENV}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
     ports:
       - "5000:5000"
     volumes:
@@ -63,8 +69,10 @@ services:
       context: ./ai_worker
       dockerfile: Dockerfile
     container_name: innsight-ai-worker
+    env_file:
+      - .env
     environment:
-      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -78,9 +86,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: innsight-result-consumer
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/innsight
-      RABBITMQ_HOST: rabbitmq
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
     depends_on:
       postgres:
         condition: service_healthy
