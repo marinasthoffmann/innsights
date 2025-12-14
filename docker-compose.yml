@@ -72,6 +72,25 @@ services:
     volumes:
       - ./ai_worker:/app 
 
+    # Result Consumer - Updates database
+  result-consumer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: innsight-result-consumer
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/innsight
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    command: python start_consumer.py
+
 volumes:
   postgres_data:
   rabbitmq_data:

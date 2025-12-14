@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy worker code
-COPY consumer.py .
+COPY worker.py .
 
 # Run the worker
-CMD ["python", "consumer.py"]
+CMD ["python", "worker.py"]

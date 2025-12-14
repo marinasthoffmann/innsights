@@ -10,7 +10,7 @@ class ReviewQueuePublisher:
 
     def __init__(self):
         self.host = os.getenv('RABBITMQ_HOST', 'rabbitmq')
-        self.queue_name = 'review_analysis'
+        self.queue_name = 'review.created'
         self.connection = None
         self.channel = None
 
@@ -36,7 +36,7 @@ class ReviewQueuePublisher:
         
     def publish_review(self, review_id, review_data):
         """
-        Publish a review for analysis
+        Publish ReviewCreated event
         
         Args:
             review_id: Review ID
@@ -46,7 +46,8 @@ class ReviewQueuePublisher:
             if not self.channel or self.channel.is_closed:
                 self.connect()
 
-            message = {
+            event = {
+                'event_type': 'ReviewCreated',
                 'review_id': review_id,
                 'title': review_data.get('title'),
                 'content': review_data.get('content'),
@@ -57,14 +58,14 @@ class ReviewQueuePublisher:
             self.channel.basic_publish(
                 exchange='',
                 routing_key=self.queue_name,
-                body=json.dumps(message),
+                body=json.dumps(event),
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                     content_type='application/json'
                 )
             )
             
-            logger.info(f"📤 Review {review_id} published for analysis")
+            logger.info(f"📤 Published ReviewCreated event for review {review_id}")
             return True
             
         except Exception as e:
@@ -75,7 +76,6 @@ class ReviewQueuePublisher:
         """Close connection"""
         if self.connection and not self.connection.is_closed:
             self.connection.close()
-            logger.info("🔌 RabbitMQ connection closed")
 
 # Global instance (singleton)
 _publisher = None
