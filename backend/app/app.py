@@ -1,4 +1,5 @@
 import logging
+import random
 from flask import Flask, jsonify
 from werkzeug.exceptions import HTTPException
 from sqlalchemy import inspect
@@ -9,6 +10,7 @@ from routes.health_bp import health_bp
 from routes.hotels_bp import hotels_bp
 from routes.reviews_bp import reviews_bp
 from models.hotel import Hotel
+from models.review import Review, ReviewStatus
 
 
 def create_app(config_name=None):
@@ -193,38 +195,113 @@ def _seed_sample_data(app):
         db.session.rollback()
         
         hotels = [
-            Hotel(
-                name="Grand Plaza Hotel",
-                city="New York",
-                country="USA",
-                address="123 Main St, NY 10001",
-                description="Luxury hotel in the heart of Manhattan",
-                star_rating=4.5,
-            ),
-            Hotel(
-                name="Seaside Resort",
-                city="Miami",
-                country="USA",
-                address="456 Ocean Drive, Miami 33139",
-                description="Beautiful beachfront resort",
-                star_rating=4.0,
-            ),
-            Hotel(
-                name="Mountain View Lodge",
-                city="Denver",
-                country="USA",
-                address="789 Alpine Rd, Denver 80202",
-                description="Cozy mountain retreat",
-                star_rating=3.5,
-            )
+            # US Hotels
+            Hotel(name="Grand Plaza Hotel", city="New York", country="USA",
+                  address="123 Main St, NY 10001", 
+                  description="Luxury hotel in the heart of Manhattan", star_rating=4.5),
+            Hotel(name="Seaside Resort", city="Miami", country="USA",
+                  address="456 Ocean Drive, Miami 33139", 
+                  description="Beautiful beachfront resort", star_rating=4.0),
+            Hotel(name="Mountain View Lodge", city="Denver", country="USA",
+                  address="789 Alpine Rd, Denver 80202", 
+                  description="Cozy mountain retreat", star_rating=3.5),
+            Hotel(name="Downtown Business Hotel", city="Chicago", country="USA",
+                  address="321 Commerce Blvd, Chicago 60601", 
+                  description="Modern business hotel", star_rating=4.0),
+            Hotel(name="Historic Inn", city="Boston", country="USA",
+                  address="555 Heritage Lane, Boston 02101", 
+                  description="Charming historic inn", star_rating=3.8),
+            
+            # European Hotels
+            Hotel(name="Royal Palace Hotel", city="London", country="UK",
+                  address="10 Buckingham Road, London SW1A 1AA",
+                  description="Elegant hotel near royal landmarks", star_rating=5.0),
+            Hotel(name="Seine View Hotel", city="Paris", country="France",
+                  address="25 Rue de Rivoli, Paris 75001",
+                  description="Boutique hotel with Eiffel Tower views", star_rating=4.7),
+            Hotel(name="Berlin Central Hotel", city="Berlin", country="Germany",
+                  address="15 Unter den Linden, Berlin 10117",
+                  description="Modern hotel in city center", star_rating=4.2),
+            Hotel(name="Rome Heritage Hotel", city="Rome", country="Italy",
+                  address="88 Via del Corso, Rome 00186",
+                  description="Classic Italian hotel near Colosseum", star_rating=4.5),
+            Hotel(name="Barcelona Beach Resort", city="Barcelona", country="Spain",
+                  address="42 Passeig de Gracia, Barcelona 08007",
+                  description="Mediterranean resort with beach access", star_rating=4.3),
+            
+            # Asian Hotels
+            Hotel(name="Tokyo Tower Hotel", city="Tokyo", country="Japan",
+                  address="1-1-1 Shibuya, Tokyo 150-0002",
+                  description="High-tech hotel in heart of Tokyo", star_rating=4.6),
+            Hotel(name="Singapore Marina Hotel", city="Singapore", country="Singapore",
+                  address="10 Marina Bay, Singapore 018956",
+                  description="Luxury waterfront hotel", star_rating=4.8),
+            Hotel(name="Hong Kong Skyline Hotel", city="Hong Kong", country="China",
+                  address="88 Nathan Road, Hong Kong",
+                  description="Modern hotel with harbor views", star_rating=4.4),
+            Hotel(name="Bangkok Palace Hotel", city="Bangkok", country="Thailand",
+                  address="123 Sukhumvit Road, Bangkok 10110",
+                  description="Traditional Thai hospitality", star_rating=4.1),
+            Hotel(name="Dubai Luxury Resort", city="Dubai", country="UAE",
+                  address="1 Sheikh Zayed Road, Dubai",
+                  description="Ultra-luxury resort", star_rating=5.0),
         ]
 
         db.session.add_all(hotels)
         db.session.flush()
+
+        review_data = [
+            ("Alice Johnson", 5, "Absolutely perfect!",
+             "This hotel exceeded all expectations. Room was spotless, staff incredibly friendly."),
+            ("Bob Smith", 4, "Great stay overall",
+             "Really enjoyed our stay. Excellent amenities and great breakfast buffet."),
+            ("Carol White", 5, "Amazing experience",
+             "From check-in to check-out, everything was seamless. Highly recommend!"),
+            ("David Brown", 3, "Decent but not great",
+             "Good location and clean rooms, but felt a bit dated. AC was noisy."),
+            ("Emma Davis", 4, "Good value for money",
+             "For the price, great value. Modern gym facilities. Good for business."),
+            ("Frank Miller", 5, "Perfect family vacation",
+             "Perfect with kids. Amazing pool, great staff, spacious family suite."),
+            ("Grace Lee", 2, "Disappointed",
+             "Didn't live up to photos. Room smaller than expected, construction noise."),
+            ("Henry Wilson", 4, "Pleasant surprise",
+             "Exceeded expectations. Rooftop bar has incredible views, very comfortable bed."),
+            ("Isabel Martinez", 5, "Best hotel in the city!",
+             "Hands down the best. Every detail perfect. Fantastic spa!"),
+            ("Jack Thompson", 3, "Average experience",
+             "Decent but nothing special. Clean, friendly staff, limited breakfast options."),
+        ]
+        
+        # Create unique reviews for each hotel (no duplicates per hotel)
+        reviews = []
+        for hotel in hotels:
+            num_reviews = random.randint(3, 7)
+
+            shuffled_templates = review_data.copy()
+            random.shuffle(shuffled_templates)
+            selected_templates = shuffled_templates[:num_reviews]
+
+            for template in selected_templates:
+                review = Review(
+                    hotel_id=hotel.id,
+                    user_name=template[0],
+                    rating=template[1],
+                    title=template[2],
+                    content=template[3],
+                    status=ReviewStatus.PENDING
+                )
+                reviews.append(review)
+        
+        db.session.add_all(reviews)
+        db.session.flush()
         db.session.commit()
         
-        count = db.session.execute(text("SELECT COUNT(*) FROM hotels")).scalar()
-        app.logger.info(f"✅ Successfully seeded {count} hotels")
+        hotel_count = db.session.execute(text("SELECT COUNT(*) FROM hotels")).scalar()
+        review_count = db.session.execute(text("SELECT COUNT(*) FROM reviews")).scalar()
+
+        app.logger.info(f"✅ Successfully seeded {hotel_count} hotels")
+        app.logger.info(f"✅ Successfully seeded {review_count} hotels")
         
     except Exception as e:
         db.session.rollback()
